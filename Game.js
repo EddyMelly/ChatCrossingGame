@@ -1,9 +1,12 @@
 import TwitchApi from './TwitchApi.js';
 import { playSound } from './PlaySound.js';
 import { restart } from './index.js';
-import { GAMESTATE, COLOUR, SOUNDS } from './SharedConstants.js';
+import { SOUNDS, TEAM_COLOURS, LEVEL_STATE } from './SharedConstants.js';
 import { DEBUG } from './Debug.js';
 import CrossingGame from './CrossingGame.js';
+import VictoryScreen from './VictoryScreen.js';
+import LeaderBoard from './LeaderBoard.js';
+import Player from './Player.js';
 
 export default class Game {
   constructor(gameWidth, gameHeight, ctx, gameArea) {
@@ -11,41 +14,73 @@ export default class Game {
     this.gameHeight = gameHeight;
     this.gameArea = gameArea;
     this.ctx = ctx;
-
+    this.joinedPlayers = [];
     this.crossingGame = null;
     this.gameObjects = [];
     this.victoryScreen;
+    this.players = [];
 
-    this.currentGameState = null;
+    this.leaderBoard = new LeaderBoard(this);
+    this.gameObjects.push(this.leaderBoard);
+    this.levelState = LEVEL_STATE.CONNECTING;
+  }
+
+  spawnPlayer(cleanUserName) {
+    const teamColour =
+      this.players.length < TEAM_COLOURS.length
+        ? TEAM_COLOURS[this.players.length]
+        : TEAM_COLOURS[this.players.length - TEAM_COLOURS.length];
+
+    if (this.levelState === LEVEL_STATE.PLAYING) {
+      const newPlayer = new Player(this, teamColour, cleanUserName);
+      newPlayer.canMove = true;
+      this.players.push(newPlayer);
+      this.leaderBoard.addToLeaderBoard(newPlayer);
+    } else {
+      const newPlayer = new Player(this, teamColour, cleanUserName);
+      this.players.push(newPlayer);
+      this.leaderBoard.addToLeaderBoard(newPlayer);
+    }
+  }
+
+  removePlayer(playerToRemove) {
+    this.players = this.players.filter((player) => playerToRemove !== player);
   }
 
   start() {
     if (DEBUG) {
-      //   startDebugGame(this);
-      this.currentGameState = GAMESTATE.PLAYING;
+      this.levelState = LEVEL_STATE.CONNECTING;
+      this.TwitchApi = new TwitchApi('edgarmelons', this);
+      this.TwitchApi.connectTwitchChat();
     } else {
-      this.currentGameState = GAMESTATE.PLAYING;
+      this.levelState = LEVEL_STATE.CONNECTING;
+      this.TwitchApi = new TwitchApi('ceremor', this);
+      this.TwitchApi.connectTwitchChat();
     }
   }
 
   update(deltaTime) {
-    switch (this.currentGameState) {
-      case GAMESTATE.PAUSED:
-        break;
-      case GAMESTATE.PLAYING:
+    this.players.forEach((player) => player.update(deltaTime));
+    switch (this.levelState) {
+      case LEVEL_STATE.SHOWING:
+      case LEVEL_STATE.JOINING:
+      case LEVEL_STATE.PLAYING:
         if (this.crossingGame === null) {
           this.crossingGame = new CrossingGame(this);
           this.gameObjects.push(this.crossingGame);
         }
         this.gameObjects.forEach((object) => object.update(deltaTime));
         break;
-      case GAMESTATE.VICTORY:
-        this.gameObjects = [this.victoryScreen];
+      case LEVEL_STATE.VICTORY:
+        this.gameObjects = [this.victoryScreen, this.leaderBoard];
     }
   }
 
   draw(ctx) {
     this.gameObjects.forEach((object) => object.draw(ctx));
+    if (this.levelState !== LEVEL_STATE.VICTORY) {
+      this.players.forEach((player) => player.draw(ctx));
+    }
   }
 
   displayMessage(ctx, rgbValue, message) {
@@ -66,25 +101,17 @@ export default class Game {
 
   victory(player) {
     if (player && player.playerState === 0) {
-      var winnerUserName;
-      var foundPlayer = this.activePlayers.find(
-        (element) => element.teamColour === player.colour
-      );
-      if (foundPlayer) {
-        winnerUserName = foundPlayer.user;
-      } else {
-        winnerUserName = null;
-      }
       this.victoryScreen = new VictoryScreen(
         this,
         player.colour,
-        winnerUserName
+        player.userName
       );
+      playSound(SOUNDS.VICTORY);
     } else {
-      this.victoryScreen = new VictoryScreen(this, 'no', winnerUserName);
+      this.victoryScreen = new VictoryScreen(this, 'no', '');
+      playSound(SOUNDS.BLOOP);
     }
-    this.currentGameState = GAMESTATE.VICTORY;
-    playSound(SOUNDS.VICTORY);
+    this.levelState = LEVEL_STATE.VICTORY;
     setTimeout(function () {
       restart();
       return;

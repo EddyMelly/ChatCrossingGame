@@ -20,7 +20,7 @@ export class GlassTile {
       this.winningTile = true;
     } else if (tileType == 1) {
       this.breakable = true;
-      this.currentTile = 2;
+      this.currentTile = 0;
       this.winningTile = false;
     } else {
       this.breakable = false;
@@ -42,7 +42,7 @@ export class GlassTile {
     }
 
     if (this.currentTile === 3) {
-      this.game.crossingGame.players.forEach((player) => {
+      this.game.players.forEach((player) => {
         if (lavaDetection(this, player)) {
           player.death();
         }
@@ -50,14 +50,16 @@ export class GlassTile {
     }
   }
 
-  showbreakable() {
+  showBreakable() {
     if (this.breakable) {
-      this.currentTile = 3;
+      this.currentTile = 2;
     }
   }
 
-  unshowBreakable() {
-    this.currentTile = 0;
+  unShowBreakable() {
+    if (this.breakable) {
+      this.currentTile = 0;
+    }
   }
 
   callEverySecond() {

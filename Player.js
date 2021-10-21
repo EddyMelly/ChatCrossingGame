@@ -12,12 +12,13 @@ const DISPLAY_SIZE = 25;
 
 export default class Player {
   constructor(game, colour, userName) {
+    this.moves = 0;
     this.userName = userName;
     this.colour = colour;
     this.width = DISPLAY_SIZE;
     this.game = game;
     this.height = DISPLAY_SIZE;
-    this.canMove = true;
+    this.canMove = false;
     this.playerState = PLAYER_STATE.ALIVE;
     this.movementBuffer = [];
     this.ticker = 300;
@@ -108,7 +109,7 @@ export default class Player {
       playSound(SOUNDS.DEATH);
       this.playerState = PLAYER_STATE.DEAD;
       setTimeout(() => {
-        this.game.crossingGame.removePlayer(this);
+        this.game.removePlayer(this);
       }, 5000);
     }
   }
@@ -147,7 +148,10 @@ export default class Player {
         this.position
       );
       this.tilePosition = landedOnTile.rowPosition;
-      landedOnTile && landedOnTile.break();
+      landedOnTile.breakable && landedOnTile.break();
+      landedOnTile.winningTile && this.game.victory(this);
+      this.moves = this.moves + 1;
+      this.game.leaderBoard.updateLeaderBoard();
     }
   }
 

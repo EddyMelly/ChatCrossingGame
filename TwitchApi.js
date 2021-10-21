@@ -1,11 +1,10 @@
-import { GAMESTATE, DIRECTIONS } from './SharedConstants.js';
-import { playSound } from './PlaySound.js';
+import { DIRECTIONS, LEVEL_STATE } from './SharedConstants.js';
 
 export default class TwitchApi {
   constructor(channel, game) {
     this.channel = channel;
-    this.joinedUsers = [];
     this.game = game;
+    this.joinedPlayers = [];
     this.previousInstruction = {};
     this.statusElement = document.getElementById('status');
     this.twitchCall = new TwitchJs({
@@ -26,6 +25,7 @@ export default class TwitchApi {
     chat
       .connect()
       .then(() => {
+        this.game.levelState = LEVEL_STATE.JOINING;
         chat
           .join(this.channel)
           .then(() => {
@@ -46,7 +46,6 @@ export default class TwitchApi {
       });
 
     chat.on('*', (message) => {
-      var message = message;
       var clean_message = DOMPurify.sanitize(message.message, {
         ALLOWED_TAGS: ['b'],
       });
@@ -56,8 +55,9 @@ export default class TwitchApi {
       var uppercaseMessage = clean_message.toUpperCase();
       var upperCaseMessageClean = uppercaseMessage.replace(/ .*/, '');
 
-      switch (this.game.currentGameState) {
-        case GAMESTATE.JOINING:
+      switch (this.game.levelState) {
+        case LEVEL_STATE.SHOWING:
+        case LEVEL_STATE.JOINING:
           if (
             upperCaseMessageClean === 'JOIN' ||
             upperCaseMessageClean === '!JOIN'
@@ -65,85 +65,34 @@ export default class TwitchApi {
             this.addUserToColour(clean_username);
           }
           break;
-        case GAMESTATE.PAUSED:
-          //DO NOTHING
-          break;
-        case GAMESTATE.VICTORY:
+        case LEVEL_STATE.VICTORY:
           //VICTORY
           break;
-        case GAMESTATE.PLAYING:
+        case LEVEL_STATE.PLAYING:
+          if (
+            upperCaseMessageClean === 'JOIN' ||
+            upperCaseMessageClean === '!JOIN'
+          ) {
+            this.addUserToColour(clean_username);
+          }
+          if (
+            upperCaseMessageClean === DIRECTIONS.LEFT ||
+            upperCaseMessageClean === DIRECTIONS.RIGHT
+          ) {
+            this.performInstruction(clean_username, upperCaseMessageClean);
+          }
           break;
       }
     });
   }
 
-  handleInstructionDuringJoining(clean_username, clean_message) {}
-
-  determineModStatus(message) {
-    if (message.tags.badges) {
-      if (
-        'broadcaster' in message.tags.badges ||
-        'moderator' in message.tags.badges
-      ) {
-        return true;
-      } else {
-        return false;
-      }
-    } else {
-      return false;
-    }
-  }
-
-  performInstruction(userName, instruction, originalMessage) {
-    var result = this.game.activePlayers.find(
-      (player) => player.user === userName
+  performInstruction(userName, instruction) {
+    var result = this.game.players.find(
+      (player) => player.userName === userName
     );
 
-    if (result) {
-      if (result.isMod === true) {
-        this.modCheckCompleteInstruction(
-          result,
-          userName,
-          instruction,
-          originalMessage
-        );
-      } else {
-        this.completeInstruction(result.player, instruction);
-        this.game.contestantPanels.changeInstruction(
-          instruction,
-          result.teamColour
-        );
-      }
-    }
-  }
-
-  modCheckCompleteInstruction(result, userName, instruction, originalMessage) {
-    if (this.previousInstruction[userName].canInstruct) {
-      if (
-        this.previousInstruction[userName].previousMessage !== originalMessage
-      ) {
-        this.completeInstruction(result.player, instruction);
-        this.game.contestantPanels.changeInstruction(
-          instruction,
-          result.teamColour
-        );
-
-        this.previousInstruction[userName].canInstruct = false;
-        this.previousInstruction[userName].previousMessage = originalMessage;
-        setTimeout(() => {
-          this.previousInstruction[userName].canInstruct = true;
-        }, 1000);
-      } else {
-        this.game.contestantPanels.changeInstruction(
-          'MOD REPEATING',
-          result.teamColour
-        );
-      }
-    } else {
-      this.game.contestantPanels.changeInstruction(
-        'MOD TOO FAST',
-        result.teamColour
-      );
+    if (result && result.canMove) {
+      this.completeInstruction(result, instruction);
     }
   }
 
@@ -155,64 +104,25 @@ export default class TwitchApi {
       case DIRECTIONS.RIGHT:
         playerTeam.moveRightBuffer();
         break;
-      case DIRECTIONS.UP:
-        playerTeam.moveUpBuffer();
-        break;
-      case DIRECTIONS.DOWN:
-        playerTeam.moveDownBuffer();
-        break;
-      case DIRECTIONS.JUMP:
-        playerTeam.moveJumpBuffer();
-        break;
       default:
         break;
     }
   }
 
-  addUserToColour(cleanUserName, message) {
-    if (this.game.playerTeams.length > 0) {
-      if (!this.checkIfJoined(cleanUserName)) {
-        //determine mod status
-        var isMod = this.determineModStatus(message);
-        //find empty team
-        var emptyTeam = this.game.playerTeams.find((x) => x.user === null);
-        // add player to Team
-        emptyTeam.user = cleanUserName;
-        emptyTeam.isMod = isMod;
-
-        if (isMod) {
-          this.previousInstruction[cleanUserName] = {
-            canInstruct: true,
-            previousMessage: 'test',
-          };
-        }
-
-        //add player to all players
-        this.game.allPlayers.push({
-          userName: cleanUserName,
-          team: emptyTeam,
-        });
-        this.game.contestantPanels.giveUserName(
-          cleanUserName,
-          emptyTeam.teamColour
-        );
-
-        // add team to active teams
-        this.game.activePlayers.push(emptyTeam);
-
-        // remove team from available
-        this.game.playerTeams = this.game.playerTeams.filter(
-          (object) => object.user === null
-        );
-        if (this.game.playerTeams.length <= 0) {
-          this.game.startGlassGame();
-        }
+  addUserToColour(cleanUserName) {
+    if (!this.checkIfJoined(cleanUserName)) {
+      if (
+        this.game.joinedPlayers.length < 16 &&
+        this.game.levelState !== LEVEL_STATE.VICTORY
+      ) {
+        this.game.joinedPlayers.push(cleanUserName);
+        this.game.spawnPlayer(cleanUserName);
       }
     }
   }
 
   checkIfJoined(userName) {
-    if (this.game.allPlayers.some((player) => player.userName === userName)) {
+    if (this.game.joinedPlayers.some((player) => player === userName)) {
       return true;
     } else {
       return false;

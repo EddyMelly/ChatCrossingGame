@@ -1,28 +1,29 @@
 import { GlassTile } from './GlassTile.js';
-import { COLOUR, SOUNDS } from './SharedConstants.js';
+import { SOUNDS, LEVEL_STATE } from './SharedConstants.js';
 import { playSound } from './PlaySound.js';
 import { generateRandomInteger } from './GameUtils.js';
-import Player from './Player.js';
-import InputHandler from './InputHandler.js';
-
-const LEVEL_STATE = {
-  PAUSED: 0,
-  RUNNING: 1,
-};
+import Animation from './Animation.js';
 
 export default class CrossingGame {
   constructor(game) {
     this.game = game;
-    this.levelState = LEVEL_STATE.PAUSED;
     this.glassTiles = [];
     this.animationTimer = 0;
-    this.timer = 0;
+    this.joiningTimer = 31;
+    this.playTimer = 300;
+    this.lastShownTile = 0;
     this.backGroundImage = document.getElementById('lavaBackground');
-    this.startMessage = '';
+    this.titleMessage = 'Connecting to Twitch';
     this.level = this.generateLevel();
     this.buildLevel(this.game);
-    this.players = [];
-    this.spawnPlayer();
+    this.sprite_sheet = {
+      frame_sets: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+      image: document.getElementById('joinStrip'),
+    };
+    this.animation = this.animation = new Animation(
+      this.sprite_sheet.frame_sets,
+      2
+    );
   }
 
   buildLevel(game) {
@@ -72,99 +73,109 @@ export default class CrossingGame {
     return tile;
   }
 
-  callEverySecond() {
-    this.timer = this.timer + 1;
-    // switch (this.levelState) {
-    //   case LEVEL_STATE.RUNNING:
-    //   // if (this.timer % this.breakTimer === 0 && this.glassTiles.length >= 1) {
-    //   //   this.chooseTilesToBreak();
-    //   // }
-    //   // break;
-    //   case LEVEL_STATE.PAUSED:
-    //     this.displayStart(this.timer);
-    //     break;
-    // }
+  callEveryInterval() {
+    switch (this.game.levelState) {
+      case LEVEL_STATE.CONNECTING:
+        this.changeTitle('Connecting to Twitch');
+        break;
+      case LEVEL_STATE.JOINING:
+        if (this.joiningTimer === 0 && this.game.players.length > 0) {
+          //continue condition
+          playSound(SOUNDS.BLOOP);
+          this.game.levelState = LEVEL_STATE.SHOWING;
+        } else if (this.joiningTimer === 0 && this.game.players.length === 0) {
+          //reset timer conditions
+          this.joiningTimer = 31;
+        } else {
+          this.joiningTimer = this.joiningTimer - 1;
+          this.changeTitle('Game starting in ' + this.joiningTimer);
+          if (this.game.players.length > 0 && this.joiningTimer < 3) {
+            playSound(SOUNDS.BLIP);
+          }
+        }
+        break;
+      case LEVEL_STATE.SHOWING:
+        if (this.titleMessage === '') {
+          this.changeTitle('Pay attention!!');
+        } else {
+          this.changeTitle('');
+        }
+        this.showRowOfTiles();
+        break;
+      case LEVEL_STATE.PLAYING:
+        this.playTimer = this.playTimer - 1;
+        if (this.playTimer === 0 || this.game.players.length === 0) {
+          this.game.victory();
+        }
+        this.changeTitle(this.playTimer);
+        break;
+      default:
+        break;
+    }
   }
 
-  removePlayer(playerToRemove) {
-    this.players = this.players.filter((player) => playerToRemove !== player);
-  }
-
-  spawnPlayer() {
-    const newPlayer = new Player(this.game, COLOUR.RED, 'Ryan');
-    new InputHandler(newPlayer);
-    this.players.push(newPlayer);
-  }
-
-  displayStart(timer) {
-    switch (timer) {
-      case 0:
-        this.startMessage = '3';
-        break;
-      case 1:
-        this.startMessage = '3';
-        playSound(SOUNDS.BLIP);
-        break;
-      case 2:
-        this.startMessage = '2';
-        playSound(SOUNDS.BLIP);
-        break;
-      case 3:
-        this.startMessage = '1';
-        playSound(SOUNDS.BLIP);
-        break;
-      case 4:
-        this.startMessage = 'GO!';
-        playSound(SOUNDS.BLOOP);
-        break;
-      case 5:
-        this.startMessage = '';
-        this.timer = 0;
-        this.levelState = LEVEL_STATE.RUNNING;
-        break;
+  showRowOfTiles() {
+    if (this.lastShownTile < this.glassTiles.length - 2) {
+      this.glassTiles[this.lastShownTile].tile.unShowBreakable();
+      this.glassTiles[this.lastShownTile + 1].tile.unShowBreakable();
+      this.lastShownTile = this.lastShownTile + 2;
+      this.glassTiles[this.lastShownTile].tile.showBreakable();
+      this.glassTiles[this.lastShownTile + 1].tile.showBreakable();
+    } else {
+      this.game.players.forEach((player) => (player.canMove = true));
+      this.game.levelState = LEVEL_STATE.PLAYING;
+      this.changeTitle('GO');
+      playSound(SOUNDS.BLOOP);
     }
   }
 
   update(deltaTime) {
-    switch (this.levelState) {
-      case LEVEL_STATE.PAUSED:
-        break;
-      case LEVEL_STATE.RUNNING:
-        break;
-    }
-    //FOR RANDOM TILE BREAKS
-    // this.glassTilesNotBreaking = this.glassTiles.filter(
-    //   (object) => !object.tile.breaking
-    // );
-
-    // this.glassTilesBreaking = this.glassTiles.filter(
-    //   (object) => object.tile.breaking
-    // );
-
-    //TEST CODE FOR JUMPING MECHANIC
+    this.animation.update(deltaTime);
     this.glassTiles.forEach((object) => object.tile.update(deltaTime));
-    this.players.forEach((player) => player.update(deltaTime));
-    //TEST CODE FOR JUMPING MECHANIC
-
-    // this.glassTilesBreaking.forEach((object) => object.update(deltaTime));
-
     this.animationTimer += deltaTime / 1000;
-    if (this.animationTimer >= 1) {
-      this.callEverySecond();
-      this.animationTimer = 0;
+
+    switch (this.game.levelState) {
+      case LEVEL_STATE.PLAYING:
+      case LEVEL_STATE.JOINING:
+        if (this.animationTimer >= 1) {
+          this.animationTimer = 0;
+          this.callEveryInterval(1);
+        }
+        break;
+      case LEVEL_STATE.SHOWING:
+        if (this.animationTimer >= 0.25) {
+          this.animationTimer = 0;
+          this.callEveryInterval(0.25);
+        }
+        break;
     }
+  }
+
+  changeTitle(message) {
+    this.titleMessage = message;
   }
 
   draw(ctx) {
     ctx.drawImage(this.backGroundImage, 475, 50, 250, 600);
-    if (this.levelState === LEVEL_STATE.PAUSED) {
-      ctx.font = '40px luckiest_guyregular';
-      ctx.fillStyle = 'white';
-      ctx.textAlign = 'center';
 
-      ctx.fillText(this.startMessage, 600, 45);
-      this.glassTiles.forEach((object) => object.tile.draw(ctx));
-    }
-    this.players.forEach((player) => player.draw(ctx));
+    ctx.font = '40px luckiest_guyregular';
+    ctx.fillStyle = 'black';
+    ctx.textAlign = 'center';
+
+    ctx.fillText(this.titleMessage, 600, 40);
+
+    this.glassTiles.forEach((object) => object.tile.draw(ctx));
+
+    ctx.drawImage(
+      this.sprite_sheet.image,
+      this.animation.frame * 150,
+      0,
+      150,
+      150,
+      145,
+      85,
+      150,
+      150
+    );
   }
 }

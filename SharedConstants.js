@@ -1,8 +1,9 @@
-export const GAMESTATE = {
-  PAUSED: 0,
-  PLAYING: 1,
-  VICTORY: 2,
-  JOINING: 3,
+export const LEVEL_STATE = {
+  JOINING: 0,
+  SHOWING: 1,
+  PLAYING: 2,
+  VICTORY: 3,
+  CONNECTING: 4,
 };
 
 export const PLAYER_STATE = {
@@ -19,6 +20,12 @@ export const COLOUR = {
   TEAL: 'TEAL',
   PURPLE: 'PURPLE',
   PINK: 'PINK',
+};
+
+export const TEAM_COLOURS = Object.values(COLOUR);
+
+export const truncateString = (str) => {
+  return str.length > 14 ? str.substr(0, 14) + '...' : str;
 };
 
 export const DIRECTIONS = {
