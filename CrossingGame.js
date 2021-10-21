@@ -119,8 +119,8 @@ export default class CrossingGame {
       this.glassTiles[this.lastShownTile].tile.unShowBreakable();
       this.glassTiles[this.lastShownTile + 1].tile.unShowBreakable();
       this.lastShownTile = this.lastShownTile + 2;
-      this.glassTiles[this.lastShownTile].tile.showBreakable();
-      this.glassTiles[this.lastShownTile + 1].tile.showBreakable();
+      this.glassTiles[this.lastShownTile].tile.showNotBreakable();
+      this.glassTiles[this.lastShownTile + 1].tile.showNotBreakable();
     } else {
       this.game.players.forEach((player) => (player.canMove = true));
       this.game.levelState = LEVEL_STATE.PLAYING;
@@ -143,9 +143,9 @@ export default class CrossingGame {
         }
         break;
       case LEVEL_STATE.SHOWING:
-        if (this.animationTimer >= 0.25) {
+        if (this.animationTimer >= 0.35) {
           this.animationTimer = 0;
-          this.callEveryInterval(0.25);
+          this.callEveryInterval(0.35);
         }
         break;
     }

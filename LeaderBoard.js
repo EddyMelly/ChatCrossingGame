@@ -22,11 +22,11 @@ export default class LeaderBoard {
 
   draw(ctx) {
     ctx.font = '25px luckiest_guyregular';
-    ctx.textAlign = 'center';
+    ctx.textAlign = 'left';
     let latestStartPosition = 137;
 
     this.sortedArray.forEach(function (element) {
-      ctx.fillText(truncateString(element.userName), 910, latestStartPosition);
+      ctx.fillText(truncateString(element.userName), 830, latestStartPosition);
       ctx.fillText(element.moves, 1100, latestStartPosition);
       latestStartPosition += 33;
     });

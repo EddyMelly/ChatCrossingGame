@@ -50,14 +50,14 @@ export class GlassTile {
     }
   }
 
-  showBreakable() {
-    if (this.breakable) {
-      this.currentTile = 2;
+  showNotBreakable() {
+    if (!this.breakable) {
+      this.currentTile = 1;
     }
   }
 
   unShowBreakable() {
-    if (this.breakable) {
+    if (!this.winningTile) {
       this.currentTile = 0;
     }
   }
