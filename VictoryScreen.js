@@ -1,5 +1,4 @@
 import { COLOUR, truncateString } from './SharedConstants.js';
-import { DEBUG } from './Debug.js';
 
 export default class VictoryScreen {
   constructor(game, winningTeam, winnerUserName) {
