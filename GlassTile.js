@@ -7,41 +7,42 @@ const DISPLAY_SIZE = 25;
 export class GlassTile {
   constructor(game, position, tileType) {
     this.game = game;
+    this.breaking = false;
     this.image = document.getElementById('glassTile');
     this.position = { x: position.x, y: position.y };
     this.tile_sheet = {
-      tile_sets: [0, 1, 2, 3],
+      tile_sets: [0, 1, 2, 3, 4],
       image: document.getElementById('glassTileSheet'),
     };
 
     if (tileType === 2) {
       this.breakable = false;
-      this.currentTile = 1;
+      this.currentTile = 0;
       this.winningTile = true;
     } else if (tileType == 1) {
       this.breakable = true;
-      this.currentTile = 0;
+      this.currentTile = 1;
       this.winningTile = false;
     } else {
       this.breakable = false;
-      this.currentTile = 0;
+      this.currentTile = 1;
       this.winningTile = false;
     }
 
     this.animationTimer = 0;
-    this.timer = 0;
+    this.breakingTimer = 0;
     this.rowPosition =
       this.position.x === 575 ? DIRECTIONS.LEFT : DIRECTIONS.RIGHT;
   }
 
   update(deltaTime) {
     this.animationTimer += deltaTime / 1000;
-    if (this.animationTimer > 1 && this.breaking) {
+    if (this.animationTimer > 1) {
       this.callEverySecond();
       this.animationTimer = 0;
     }
 
-    if (this.currentTile === 3) {
+    if (this.currentTile === 4) {
       this.game.players.forEach((player) => {
         if (lavaDetection(this, player)) {
           player.death();
@@ -52,23 +53,41 @@ export class GlassTile {
 
   showNotBreakable() {
     if (!this.breakable) {
-      this.currentTile = 1;
-    }
-  }
-
-  unShowBreakable() {
-    if (!this.winningTile) {
       this.currentTile = 0;
     }
   }
 
+  unShow() {
+    if (!this.winningTile) {
+      this.currentTile = 1;
+    }
+  }
+
   callEverySecond() {
-    this.timer++;
+    if (this.breaking && this.currentTile < 4 && !this.winningTile) {
+      this.breakingTimer++;
+      console.log(this.breakingTimer);
+      if (this.breakingTimer % 10 === 0) {
+        this.advanceBreaking();
+      }
+    }
   }
 
   break() {
     if (this.breakable) {
-      this.currentTile = 3;
+      this.currentTile = 4;
+    }
+  }
+
+  advanceBreaking() {
+    if (!this.breaking) {
+      this.breaking = true;
+    }
+    if (this.currentTile === 0) {
+      this.currentTile = 1;
+    }
+    if (!this.winningTile && this.currentTile < 4) {
+      this.currentTile++;
     }
   }
 

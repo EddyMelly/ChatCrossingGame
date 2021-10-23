@@ -7,21 +7,24 @@ import Animation from './Animation.js';
 export default class CrossingGame {
   constructor(game) {
     this.game = game;
+    this.canJoin = true;
     this.glassTiles = [];
+    this.indexedGlassTiles = [];
+    this.nextTilesToBreak = 0;
     this.animationTimer = 0;
     this.joiningTimer = 31;
-    this.playTimer = 300;
-    this.lastShownTile = 0;
+    this.playTimer = 260;
+    this.lastShownRow = 0;
     this.backGroundImage = document.getElementById('lavaBackground');
     this.titleMessage = 'Connecting to Twitch';
     this.level = this.generateLevel();
     this.buildLevel(this.game);
-    this.sprite_sheet = {
+    this.joinSpriteSheet = {
       frame_sets: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
       image: document.getElementById('joinStrip'),
     };
     this.animation = this.animation = new Animation(
-      this.sprite_sheet.frame_sets,
+      this.joinSpriteSheet.frame_sets,
       2
     );
   }
@@ -42,6 +45,7 @@ export default class CrossingGame {
         this.glassTiles.push(tempGlassTile);
         tempArray.push(tempGlassTile);
       });
+      this.indexedGlassTiles.push(tempArray);
     });
   }
 
@@ -80,11 +84,9 @@ export default class CrossingGame {
         break;
       case LEVEL_STATE.JOINING:
         if (this.joiningTimer === 0 && this.game.players.length > 0) {
-          //continue condition
           playSound(SOUNDS.BLOOP);
           this.game.levelState = LEVEL_STATE.SHOWING;
         } else if (this.joiningTimer === 0 && this.game.players.length === 0) {
-          //reset timer conditions
           this.joiningTimer = 31;
         } else {
           this.joiningTimer = this.joiningTimer - 1;
@@ -108,19 +110,43 @@ export default class CrossingGame {
           this.game.victory();
         }
         this.changeTitle(this.playTimer);
+        if (this.playTimer <= 240 && this.playTimer % 10 === 0) {
+          console.log('breaking');
+          this.breakNextTile();
+        }
+        if (this.playTimer === 240) {
+          this.canJoin = false;
+        }
         break;
       default:
         break;
     }
   }
 
+  breakNextTile() {
+    this.nextTilesToBreak++;
+
+    const tempTile =
+      this.indexedGlassTiles[
+        this.indexedGlassTiles.length - this.nextTilesToBreak
+      ][0].tile;
+
+    const tempTile2 =
+      this.indexedGlassTiles[
+        this.indexedGlassTiles.length - this.nextTilesToBreak
+      ][1].tile;
+
+    tempTile && tempTile.advanceBreaking();
+    tempTile2 && tempTile2.advanceBreaking();
+  }
+
   showRowOfTiles() {
-    if (this.lastShownTile < this.glassTiles.length - 2) {
-      this.glassTiles[this.lastShownTile].tile.unShowBreakable();
-      this.glassTiles[this.lastShownTile + 1].tile.unShowBreakable();
-      this.lastShownTile = this.lastShownTile + 2;
-      this.glassTiles[this.lastShownTile].tile.showNotBreakable();
-      this.glassTiles[this.lastShownTile + 1].tile.showNotBreakable();
+    if (this.lastShownRow < this.indexedGlassTiles.length - 1) {
+      this.indexedGlassTiles[this.lastShownRow][0].tile.unShow();
+      this.indexedGlassTiles[this.lastShownRow][1].tile.unShow();
+      this.lastShownRow = this.lastShownRow + 1;
+      this.indexedGlassTiles[this.lastShownRow][0].tile.showNotBreakable();
+      this.indexedGlassTiles[this.lastShownRow][1].tile.showNotBreakable();
     } else {
       this.game.players.forEach((player) => (player.canMove = true));
       this.game.levelState = LEVEL_STATE.PLAYING;
@@ -166,16 +192,18 @@ export default class CrossingGame {
 
     this.glassTiles.forEach((object) => object.tile.draw(ctx));
 
-    ctx.drawImage(
-      this.sprite_sheet.image,
-      this.animation.frame * 150,
-      0,
-      150,
-      150,
-      145,
-      85,
-      150,
-      150
-    );
+    if (this.canJoin) {
+      ctx.drawImage(
+        this.joinSpriteSheet.image,
+        this.animation.frame * 150,
+        0,
+        150,
+        150,
+        145,
+        85,
+        150,
+        150
+      );
+    }
   }
 }

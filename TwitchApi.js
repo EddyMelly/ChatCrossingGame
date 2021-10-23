@@ -112,7 +112,7 @@ export default class TwitchApi {
   addUserToColour(cleanUserName) {
     if (!this.checkIfJoined(cleanUserName)) {
       if (
-        this.game.joinedPlayers.length < 16 &&
+        this.game.crossingGame.canJoin &&
         this.game.levelState !== LEVEL_STATE.VICTORY
       ) {
         this.game.joinedPlayers.push(cleanUserName);

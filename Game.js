@@ -26,20 +26,24 @@ export default class Game {
   }
 
   spawnPlayer(cleanUserName) {
-    const teamColour =
-      this.players.length < TEAM_COLOURS.length
-        ? TEAM_COLOURS[this.players.length]
-        : TEAM_COLOURS[this.players.length - TEAM_COLOURS.length];
+    if (this.joinedPlayers.length <= 16) {
+      const teamColour =
+        this.players.length < TEAM_COLOURS.length
+          ? TEAM_COLOURS[this.players.length]
+          : TEAM_COLOURS[this.players.length - TEAM_COLOURS.length];
 
-    if (this.levelState === LEVEL_STATE.PLAYING) {
-      const newPlayer = new Player(this, teamColour, cleanUserName);
-      newPlayer.canMove = true;
-      this.players.push(newPlayer);
-      this.leaderBoard.addToLeaderBoard(newPlayer);
+      if (this.levelState === LEVEL_STATE.PLAYING) {
+        const newPlayer = new Player(this, teamColour, cleanUserName);
+        newPlayer.canMove = true;
+        this.players.push(newPlayer);
+        this.leaderBoard.addToLeaderBoard(newPlayer);
+      } else {
+        const newPlayer = new Player(this, teamColour, cleanUserName);
+        this.players.push(newPlayer);
+        this.leaderBoard.addToLeaderBoard(newPlayer);
+      }
     } else {
-      const newPlayer = new Player(this, teamColour, cleanUserName);
-      this.players.push(newPlayer);
-      this.leaderBoard.addToLeaderBoard(newPlayer);
+      this.crossingGame.canJoin = false;
     }
   }
 
