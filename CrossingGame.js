@@ -19,6 +19,7 @@ export default class CrossingGame {
     this.titleMessage = 'Connecting to Twitch';
     this.level = this.generateLevel();
     this.buildLevel(this.game);
+    this.joinClosedImage = document.getElementById('joiningClosed');
     this.joinSpriteSheet = {
       frame_sets: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
       image: document.getElementById('joinStrip'),
@@ -111,7 +112,6 @@ export default class CrossingGame {
         }
         this.changeTitle(this.playTimer);
         if (this.playTimer <= 240 && this.playTimer % 10 === 0) {
-          console.log('breaking');
           this.breakNextTile();
         }
         if (this.playTimer === 240) {
@@ -200,10 +200,12 @@ export default class CrossingGame {
         150,
         150,
         145,
-        85,
+        50,
         150,
         150
       );
+    } else {
+      ctx.drawImage(this.joinClosedImage, 0, 0, 150, 150, 145, 50, 150, 150);
     }
   }
 }

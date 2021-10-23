@@ -17,6 +17,7 @@ export default class Player {
     this.colour = colour;
     this.width = DISPLAY_SIZE;
     this.game = game;
+    this.dead = false;
     this.height = DISPLAY_SIZE;
     this.canMove = false;
     this.playerState = PLAYER_STATE.ALIVE;
@@ -104,6 +105,7 @@ export default class Player {
 
   death() {
     if (this.playerState === PLAYER_STATE.ALIVE) {
+      this.dead = true;
       this.canMove = false;
       this.animation.change(this.sprite_sheet.frame_sets[2], 5);
       playSound(SOUNDS.DEATH);

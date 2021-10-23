@@ -26,7 +26,11 @@ export default class Game {
   }
 
   spawnPlayer(cleanUserName) {
-    if (this.joinedPlayers.length <= 16) {
+    if (
+      this.crossingGame &&
+      this.crossingGame.canJoin &&
+      this.joinedPlayers.length <= 16
+    ) {
       const teamColour =
         this.players.length < TEAM_COLOURS.length
           ? TEAM_COLOURS[this.players.length]
@@ -42,8 +46,9 @@ export default class Game {
         this.players.push(newPlayer);
         this.leaderBoard.addToLeaderBoard(newPlayer);
       }
-    } else {
-      this.crossingGame.canJoin = false;
+      if (this.joinedPlayers.length === 16) {
+        this.crossingGame.canJoin = false;
+      }
     }
   }
 

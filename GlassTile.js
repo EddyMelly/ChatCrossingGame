@@ -66,7 +66,6 @@ export class GlassTile {
   callEverySecond() {
     if (this.breaking && this.currentTile < 4 && !this.winningTile) {
       this.breakingTimer++;
-      console.log(this.breakingTimer);
       if (this.breakingTimer % 10 === 0) {
         this.advanceBreaking();
       }

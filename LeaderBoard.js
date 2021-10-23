@@ -26,6 +26,7 @@ export default class LeaderBoard {
     let latestStartPosition = 137;
 
     this.sortedArray.forEach(function (element) {
+      ctx.fillStyle = element.dead ? 'red' : 'black';
       ctx.fillText(truncateString(element.userName), 830, latestStartPosition);
       ctx.fillText(element.moves, 1100, latestStartPosition);
       latestStartPosition += 33;
