@@ -36,8 +36,6 @@ export default class VictoryScreen {
       default:
         this.winningTeamColour = 'black';
     }
-
-    !DEBUG && this.updateDB(this.winnerUserName);
   }
 
   update(deltaTime) {}
