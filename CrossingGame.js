@@ -170,9 +170,9 @@ export default class CrossingGame {
         }
         break;
       case LEVEL_STATE.SHOWING:
-        if (this.animationTimer >= 0.35) {
+        if (this.animationTimer >= 0.4) {
           this.animationTimer = 0;
-          this.callEveryInterval(0.35);
+          this.callEveryInterval(0.4);
         }
         break;
     }
