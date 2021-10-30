@@ -16,6 +16,7 @@ export default class CrossingGame {
     this.playTimer = 260;
     this.lastShownRow = 0;
     this.backGroundImage = document.getElementById('lavaBackground');
+    this.tileMarkers = document.getElementById('tileMarkers');
     this.titleMessage = 'Connecting to Twitch';
     this.level = this.generateLevel();
     this.buildLevel(this.game);
@@ -183,6 +184,7 @@ export default class CrossingGame {
 
   draw(ctx) {
     ctx.drawImage(this.backGroundImage, 475, 50, 250, 600);
+    ctx.drawImage(this.tileMarkers, 700, 50, 25, 600);
 
     ctx.font = '40px luckiest_guyregular';
     ctx.fillStyle = 'black';
